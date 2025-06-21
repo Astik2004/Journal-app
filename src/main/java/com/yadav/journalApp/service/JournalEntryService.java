@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import com.yadav.journalApp.entity.JournalEntry;
 import com.yadav.journalApp.entity.User;
 import com.yadav.journalApp.respository.JournalEntryRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class JournalEntryService {
@@ -19,14 +20,18 @@ public class JournalEntryService {
 	private JournalEntryRepository journalEntryRepository;
 	@Autowired
 	private UserService userService;
-	
+	@Transactional
 	public void saveEntry(JournalEntry journalEntry,String userName)
 	{
-		User user=userService.findByUserName(userName);
-		journalEntry.setDate(LocalDateTime.now());
-	    JournalEntry saved=journalEntryRepository.save(journalEntry);
-	    user.getJournalEntries().add(saved);
-	    userService.saveEntry(user);
+		try {
+			User user=userService.findByUserName(userName);
+			journalEntry.setDate(LocalDateTime.now());
+			JournalEntry saved=journalEntryRepository.save(journalEntry);
+			user.getJournalEntries().add(saved);
+			userService.saveEntry(user);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	public void saveEntry(JournalEntry journalEntry)
@@ -44,17 +49,14 @@ public class JournalEntryService {
 		return journalEntryRepository.findById(id);
 	}
 	public void deleteById(ObjectId id, String userName) {
-	    User user = userService.findByUserName(userName);
-	    if (user == null) {
-	        throw new RuntimeException("User not found with username: " + userName);
-	    }
-
-	    if (user.getJournalEntries() != null) {
-	        user.getJournalEntries().removeIf(x -> x.getId().equals(id));
-	        userService.saveEntry(user);
-	    }
-
-	    journalEntryRepository.deleteById(id);
+		User user = userService.findByUserName(userName);
+		if (user == null) {
+			throw new RuntimeException("User not found with username: " + userName);
+		}
+		if (user.getJournalEntries() != null) {
+			user.getJournalEntries().removeIf(x -> x.getId().equals(id));
+			userService.saveEntry(user);
+		}
+		journalEntryRepository.deleteById(id);
 	}
-
 }
